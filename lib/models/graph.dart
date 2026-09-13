@@ -1,0 +1,318 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:graph_maker_app_2/models/edge.dart';
+import 'package:graph_maker_app_2/models/matrix_data.dart';
+import 'package:graph_maker_app_2/models/node.dart';
+
+class Graph {
+  Map<String, Node> nodes = {};
+  Map<String, Edge> edges = {};
+  int currentNode = 0;
+  int currentEdge = 0;
+  double radius = 30;
+  static const double selfLoopRadius = 20;
+  static const int overLapDistance = 10;
+
+  void addNode(double x,double y) {
+    String id = "n$currentNode";
+    nodes[id] = Node(id, generateNodeName(), x, y, radius);
+    currentNode++;
+  }
+
+  void removeNode(String id){
+    List<String> edgesToRemove = [];
+    edges.forEach((key, edge) {
+      if (edge.sourceNodeId == id || edge.targetNodeId == id) {
+        edgesToRemove.add(key);
+      }
+    });
+    for (String key in edgesToRemove) {
+      removeEdge(key);
+    }
+    nodes.remove(id);
+  }
+
+  void addEdge(String sourceNode,String targetNode, double weight, {bool directed = true}) {
+    String id = "e$currentEdge";
+    edges[id] = Edge(id, sourceNode, targetNode, weight, directed);
+    currentEdge++;
+  }
+
+  void removeEdge(String id){
+    edges.remove(id);
+  }
+
+  static double selfLoopCenterDistance(double radius){
+    return radius + selfLoopRadius - overLapDistance;
+  }
+
+  bool moveNode(String id, double x, double y){
+    final node = nodes[id];
+    if (node == null) return false;
+
+    for (final entry in nodes.entries) {
+      if (entry.key == id) continue;
+      final dx = entry.value.x - x;
+      final dy = entry.value.y - y;
+      if ((dx * dx + dy * dy) <= (radius + radius + 3) * (radius + radius + 3)) {
+        return false;
+      }
+    }
+
+    node.x = x;
+    node.y = y;
+    return true;
+  }
+
+  Node? findNode(String id){
+    return nodes[id];
+  }
+
+  String findNodeAt(double x, double y) {
+    String nodeId = "";
+    nodes.forEach((id, node){
+      double dx = node.x - x;
+      double dy = node.y - y;
+      double d = (dx * dx) + (dy * dy);
+      if( d <= (radius+radius+3) * (radius+radius+3)) {
+        if( d <= radius * radius) {
+          nodeId = id;
+        } else {
+          nodeId = "tooClose";
+        }
+      }
+    });
+    return nodeId;
+  }
+
+  List<Edge> findEdges(String id) {
+    List<Edge> xEdges = [];
+    edges.forEach((key, edge){
+      if(edge.sourceNodeId == id) xEdges.add(edge);
+    });
+    return xEdges;
+  }
+
+  String findEdgeAt(double x, double y) {
+    String edgeId = "";
+    double tolerance = 10;
+    edges.forEach((id, edge){
+      Node sourceNode = nodes[edge.sourceNodeId]!;
+      Node targetNode = nodes[edge.targetNodeId]!;
+      if(sourceNode.id == targetNode.id){
+        Offset loopEdgeCenter = Offset(sourceNode.x + selfLoopCenterDistance(sourceNode.radius), sourceNode.y);
+        double dx = loopEdgeCenter.dx - x;
+        double dy = loopEdgeCenter.dy - y;
+        double d = sqrt(dx*dx + dy*dy);
+        if((d - selfLoopRadius).abs() <= tolerance) edgeId = id;
+      }
+
+      if(_distanceToSegment(x, y, sourceNode.x, sourceNode.y, targetNode.x, targetNode.y) <= tolerance*tolerance) edgeId = id;
+    });
+    return edgeId;
+  }
+
+  double _distanceToSegment(double px, double py, double x1, double y1, double x2, double y2) {
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double lengthSquared = dx * dx + dy * dy;
+    double t = lengthSquared == 0 ? 0 : (((px - x1) * dx + (py - y1) * dy) / lengthSquared).clamp(0.0, 1.0);
+    double closestX = x1 + t * dx;
+    double closestY = y1 + t * dy;
+    double distX = px - closestX;
+    double distY = py - closestY;
+    return distX * distX + distY * distY;
+  }
+
+  Edge? findReverseEdge(String sourceNode, String targetNode){
+    Edge? found;
+    edges.forEach((id, edge){
+      if(edge.sourceNodeId == targetNode && edge.targetNodeId == sourceNode) {
+        found = edge;
+      }
+    });
+    return found;
+  }
+
+  Graph clone(){
+    final copy = Graph();
+    copy.currentNode = currentNode;
+    copy.currentEdge = currentEdge;
+    copy.radius = radius;
+    nodes.forEach((id, node){
+      copy.nodes[id] = Node(node.id, node.name, node.x, node.y, node.radius, color: node.color);
+    });
+    edges.forEach((id, edge) {
+      copy.edges[id] = Edge(edge.id, edge.sourceNodeId, edge.targetNodeId, edge.weight, edge.directed);
+    });
+    return copy;
+  }
+
+  void clear(){
+    edges.clear();
+    nodes.clear();
+    currentEdge = 0;
+    currentNode = 0;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "currentNode": currentNode,
+      "currentEdge": currentEdge,
+      "radius": radius,
+      "nodes": nodes.values.map((n) => {
+        "id": n.id,
+        "name": n.name,
+        "x": n.x,
+        "y": n.y,
+        "radius": n.radius,
+        "color": n.color,
+      }).toList(),
+      "edges": edges.values.map((e) => {
+        "id": e.id,
+        "sourceNodeId": e.sourceNodeId,
+        "targetNodeId": e.targetNodeId,
+        "weight": e.weight,
+        "directed": e.directed,
+      }).toList(),
+    };
+  }
+
+  static Graph fromJson(Map<String, dynamic> json) {
+    final graph = Graph();
+
+    graph.currentNode = json["currentNode"] as int? ?? 0;
+    graph.currentEdge = json["currentEdge"] as int? ?? 0;
+    graph.radius = (json["radius"] as num?)?.toDouble() ?? graph.radius;
+
+    final nodesJson = json["nodes"] as List<dynamic>? ?? [];
+    for (final entry in nodesJson) {
+      final map = entry as Map<String, dynamic>;
+      final node = Node(
+        map["id"] as String,
+        map["name"] as String,
+        (map["x"] as num).toDouble(),
+        (map["y"] as num).toDouble(),
+        (map["radius"] as num).toDouble(),
+        color: map["color"] as int? ?? Node.defaultColor,
+      );
+      graph.nodes[node.id] = node;
+    }
+
+    final edgesJson = json["edges"] as List<dynamic>? ?? [];
+    for (final entry in edgesJson) {
+      final map = entry as Map<String, dynamic>;
+      final edge = Edge(
+        map["id"] as String,
+        map["sourceNodeId"] as String,
+        map["targetNodeId"] as String,
+        (map["weight"] as num).toDouble(),
+        map["directed"] as bool,
+      );
+      graph.edges[edge.id] = edge;
+    }
+
+    return graph;
+  }
+
+  Map<String, dynamic> toSummaryMap() {
+      return{
+        "nodes" : nodes.values.map((n) => n.name).toList(),
+        "edges" : edges.values.map((e) => {
+          "from" : e.sourceNodeId,
+          "to" : e.targetNodeId,
+          "weight" : e.weight,
+        }).toList(),
+      };
+  }
+
+ MatrixData buildMatrixData(){
+    List<Node> orderedNodes = nodes.values.toList();
+    int n = orderedNodes.length;
+    Map<String, int> index = {};
+    for(int i = 0; i < n; i++){
+      index[orderedNodes[i].id] = i;
+    }
+
+
+    List<List<double>> matrix = List.generate(n, (_) => List.filled(n, 0.0));
+    List<int> rowDegree = List.filled(n, 0);
+    List<int> colDegree = List.filled(n, 0);
+
+    edges.forEach((id, edge){
+      int i = index[edge.sourceNodeId]!;
+      int j = index[edge.targetNodeId]!;
+      matrix[i][j] = edge.weight;
+      rowDegree[i] += 1;
+      colDegree[j] += 1;
+      if(!edge.directed && i != j){
+        matrix[j][i] = edge.weight;
+        rowDegree[j] += 1;
+        colDegree[i] += 1;
+      }
+    });
+
+    List<double> rowSum = List.filled(n, 0.0);
+    List<double> colSum = List.filled(n, 0.0);
+
+    for(int i = 0; i < n; i++){
+      for(int j = 0; j < n; j++) {
+        rowSum[i] += matrix[i][j];
+        colSum[j] += matrix[i][j];
+      }
+    }
+
+    return MatrixData(
+      nodes: orderedNodes,
+      matrix: matrix,
+      rowSum: rowSum,
+      colSum: colSum,
+      rowDegree: rowDegree,
+      colDegree: colDegree,
+    );
+ }
+
+ List<List<double>> adjacencyMatrix(MatrixData matrixData){
+    return matrixData.matrix;
+ }
+
+  String generateNodeName(){
+    List<int> stack = [];
+    int id = currentNode + 1;
+    while(id>0){
+      id -= 1;
+      int r = id % 26;
+      stack.add(r);
+      id = ((id-r)/26) as int;
+    }
+
+    String name = "";
+    while(stack.isNotEmpty){
+      name = name + String.fromCharCode(stack.removeLast()+65);
+    }
+    return name;
+  }
+
+  void renameNode(String id, String newName){
+    nodes[id]!.rename(newName);
+  }
+
+  void recolorNode(String id, int color){
+    nodes[id]!.reColor(color);
+  }
+
+  void updateEdgeWeight(String id, double newWeight) {
+    edges[id]!.weight = newWeight;
+  }
+
+  bool edgeExists(String sourceNode, String tap) {
+    bool exists = false;
+    edges.forEach((id, edge){
+      if(edge.sourceNodeId == sourceNode && edge.targetNodeId == tap) exists = true;
+    });
+    return exists;
+  }
+
+
+}
