@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/graph_provider.dart';
 import 'chat_screen.dart';
+import 'hungarian_screen.dart';
 import 'matrix_screen.dart';
 
 class GraphScreen extends StatelessWidget {
@@ -170,18 +171,39 @@ class GraphScreen extends StatelessWidget {
         ],
       ),
       body: GraphWidget(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MatrixScreen()),
-          );
-        },
-        shape: const CircleBorder(),
-        child: const Text(
-          "M[x]",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11),
-        ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "hungarianFab",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HungarianScreen()),
+              );
+            },
+            shape: const CircleBorder(),
+            child: const Text(
+              "🇭🇺",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: "matrixFab",
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MatrixScreen()),
+              );
+            },
+            shape: const CircleBorder(),
+            child: const Text(
+              "M[x]",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11),
+            ),
+          ),
+        ],
       ),
     );
   }

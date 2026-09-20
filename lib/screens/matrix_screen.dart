@@ -36,6 +36,8 @@ class MatrixScreen extends StatelessWidget {
     final graphProvider = context.watch<GraphProvider>();
     final MatrixData data = graphProvider.buildMatrixData();
     final n = data.nodes.length;
+    final r = data.rowHeaders.length;
+    final c = data.colHeaders.length;
 
     final headerBg = AppColors.headerBk;
     final summaryBg = AppColors.summaryBk;
@@ -44,15 +46,15 @@ class MatrixScreen extends StatelessWidget {
 
     rows.add(TableRow(children: [
       _cell("", background: headerBg),
-      for (final node in data.nodes) _cell(node.name, header: true, background: headerBg),
+      for (final node in data.colHeaders) _cell(node.name, header: true, background: headerBg),
       _cell("Attributes\nleaving", header: true, background: headerBg),
       _cell("Grade", header: true, background: headerBg),
     ]));
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < r; i++) {
       rows.add(TableRow(children: [
-        _cell(data.nodes[i].name, header: true, background: headerBg),
-        for (int j = 0; j < n; j++) _cell(_fmt(data.matrix[i][j])),
+        _cell(data.rowHeaders[i].name, header: true, background: headerBg),
+        for (int j = 0; j < c; j++) _cell(_fmt(data.matrix[i][j])),
         _cell(_fmt(data.rowSum[i]), background: summaryBg),
         _cell(data.rowDegree[i].toString(), background: summaryBg),
       ]));
@@ -60,14 +62,14 @@ class MatrixScreen extends StatelessWidget {
 
     rows.add(TableRow(children: [
       _cell("Attributes\narriving", header: true, background: headerBg),
-      for (int j = 0; j < n; j++) _cell(_fmt(data.colSum[j]), background: summaryBg),
+      for (int j = 0; j < c; j++) _cell(_fmt(data.colSum[j]), background: summaryBg),
       _cell("", background: headerBg),
       _cell("", background: headerBg),
     ]));
 
     rows.add(TableRow(children: [
       _cell("Grade", header: true, background: headerBg),
-      for (int j = 0; j < n; j++) _cell(data.colDegree[j].toString(), background: summaryBg),
+      for (int j = 0; j < c; j++) _cell(data.colDegree[j].toString(), background: summaryBg),
       _cell("", background: headerBg),
       _cell("", background: headerBg),
     ]));

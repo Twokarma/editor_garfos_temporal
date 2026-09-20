@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:graph_maker_app_2/algorithms/hungarian_assignment.dart';
 import 'package:graph_maker_app_2/models/edge.dart';
 import 'package:graph_maker_app_2/models/matrix_data.dart';
 import 'package:graph_maker_app_2/models/node.dart';
@@ -235,14 +236,62 @@ class Graph {
       index[orderedNodes[i].id] = i;
     }
 
+    final inverseIndex = <int, String>{
+      for(var entry in index.entries) entry.value : entry.key
+    };
+    List<String> emptyRows = [];
+    for(int i = 0; i < n; i++){
+      bool emptyRow = true;
+      for(int j = 0; j < n; j++){
+        if(edgeExists(inverseIndex[i]!, inverseIndex[j]!)){
+          emptyRow = false;
+        }
+      }
+      if(emptyRow) emptyRows.add(inverseIndex[i]!);
+    }
 
-    List<List<double>> matrix = List.generate(n, (_) => List.filled(n, 0.0));
-    List<int> rowDegree = List.filled(n, 0);
-    List<int> colDegree = List.filled(n, 0);
+    List<String> emptyCols = [];
+    for(int j = 0; j < n; j++){
+      bool emptyCol = true;
+      for(int i = 0; i < n; i++){
+        if(edgeExists(inverseIndex[i]!, inverseIndex[j]!)){
+          emptyCol = false;
+        }
+      }
+      if(emptyCol) emptyCols.add(inverseIndex[j]!);
+    }
+
+    List<Node> rowHeaders = orderedNodes.toList();
+    List<Node> colHeaders = orderedNodes.toList();
+    for(String row in emptyRows) {
+      for(Node node in rowHeaders) {
+        if(node.id == row) rowHeaders.remove(node);
+      }
+    }
+    for(String col in emptyCols) {
+      for(Node node in colHeaders) {
+        if(node.id == col) colHeaders.remove(node);
+      }
+    }
+
+    int rows = rowHeaders.length;
+    Map<String, int> rowIndex = {};
+    for(int i = 0; i < rows; i++){
+      rowIndex[rowHeaders[i].id] = i;
+    }
+    int cols = colHeaders.length;
+    Map<String, int> colIndex = {};
+    for(int i = 0; i < cols; i++){
+      colIndex[colHeaders[i].id] = i;
+    }
+
+    List<List<double>> matrix = List.generate(rows, (_) => List.filled(cols, 0.0));
+    List<int> rowDegree = List.filled(rows, 0);
+    List<int> colDegree = List.filled(cols, 0);
 
     edges.forEach((id, edge){
-      int i = index[edge.sourceNodeId]!;
-      int j = index[edge.targetNodeId]!;
+      int i = rowIndex[edge.sourceNodeId]!;
+      int j = colIndex[edge.targetNodeId]!;
       matrix[i][j] = edge.weight;
       rowDegree[i] += 1;
       colDegree[j] += 1;
@@ -253,11 +302,11 @@ class Graph {
       }
     });
 
-    List<double> rowSum = List.filled(n, 0.0);
-    List<double> colSum = List.filled(n, 0.0);
+    List<double> rowSum = List.filled(rows, 0.0);
+    List<double> colSum = List.filled(cols, 0.0);
 
-    for(int i = 0; i < n; i++){
-      for(int j = 0; j < n; j++) {
+    for(int i = 0; i < rows; i++){
+      for(int j = 0; j < cols; j++) {
         rowSum[i] += matrix[i][j];
         colSum[j] += matrix[i][j];
       }
@@ -265,6 +314,8 @@ class Graph {
 
     return MatrixData(
       nodes: orderedNodes,
+      rowHeaders: rowHeaders,
+      colHeaders: colHeaders,
       matrix: matrix,
       rowSum: rowSum,
       colSum: colSum,
@@ -275,6 +326,37 @@ class Graph {
 
  List<List<double>> adjacencyMatrix(MatrixData matrixData){
     return matrixData.matrix;
+ }
+
+ static const double _forbiddenAssignmentCost = 1e9;
+
+ List<String> hungarianSolutionEdgeIds({bool min = true}) {
+    final data = buildMatrixData();
+    final rows = data.rowHeaders.length;
+    final cols = data.colHeaders.length;
+    if (rows == 0 || cols == 0) return [];
+
+    final costMatrix = min
+        ? List.generate(rows, (i) => List.generate(cols, (j) => data.matrix[i][j] > 0 ? data.matrix[i][j] : _forbiddenAssignmentCost))
+        : data.matrix;
+
+    final result = HungarianAssignment().solve(costMatrix, min);
+
+    List<String> solutionEdgeIds = [];
+    for (int i = 0; i < rows && i < result.assignment.length; i++) {
+      final j = result.assignment[i];
+      if (j < 0 || j >= cols) continue;
+      if (data.matrix[i][j] <= 0) continue;
+
+      final sourceId = data.rowHeaders[i].id;
+      final targetId = data.colHeaders[j].id;
+      edges.forEach((id, edge) {
+        final forward = edge.sourceNodeId == sourceId && edge.targetNodeId == targetId;
+        final mirrored = !edge.directed && edge.sourceNodeId == targetId && edge.targetNodeId == sourceId;
+        if (forward || mirrored) solutionEdgeIds.add(id);
+      });
+    }
+    return solutionEdgeIds;
  }
 
   String generateNodeName(){
