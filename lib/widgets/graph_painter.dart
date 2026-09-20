@@ -14,6 +14,7 @@ class GraphPainter extends CustomPainter{
   final Offset? dragCurrentPosition;
   final String? movingNodeId;
   final Offset? movingNodePosition;
+  final Set<String> highlightedEdgeIds;
 
 
   GraphPainter({
@@ -23,6 +24,7 @@ class GraphPainter extends CustomPainter{
     required this.dragCurrentPosition,
     this.movingNodeId,
     this.movingNodePosition,
+    this.highlightedEdgeIds = const {},
   });
 
   Offset _positionOf(Node node) {
@@ -79,11 +81,11 @@ class GraphPainter extends CustomPainter{
     }
   }
 
-  void _drawSelfLoop(Canvas canvas, Offset nodePos, double nodeRadius) {
+  void _drawSelfLoop(Canvas canvas, Offset nodePos, double nodeRadius, Color color) {
     final loopCenter = Offset(nodePos.dx + Graph.selfLoopCenterDistance(nodeRadius), nodePos.dy);
 
     final paint = Paint()
-      ..color = AppColors.selfLoopEdge
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
     canvas.drawCircle(loopCenter, Graph.selfLoopRadius, paint);
@@ -103,15 +105,16 @@ class GraphPainter extends CustomPainter{
       if (sourceNode == null || targetNode == null) return;
 
       if (edge.sourceNodeId == edge.targetNodeId) {
+        final selfLoopColor = highlightedEdgeIds.contains(id) ? AppColors.hungarianSolutionEdge : AppColors.selfLoopEdge;
         final pos = _positionOf(sourceNode);
-        _drawSelfLoop(canvas, pos, sourceNode.radius);
+        _drawSelfLoop(canvas, pos, sourceNode.radius, selfLoopColor);
 
         final loopCenter = Offset(pos.dx + Graph.selfLoopCenterDistance(sourceNode.radius), pos.dy);
         final label = TextPainter(
           text: TextSpan(
               text: edge.weight.toString(),
-              style: const TextStyle(
-                color: AppColors.selfLoopEdge,
+              style: TextStyle(
+                color: selfLoopColor,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               )
@@ -133,7 +136,9 @@ class GraphPainter extends CustomPainter{
 
       final ux = dx / distance;
       final uy = dy / distance;
-      final edgeColor = dx >= 0 ? AppColors.leftRightEdge : AppColors.rightLeftEdge;
+      final edgeColor = highlightedEdgeIds.contains(id)
+          ? AppColors.hungarianSolutionEdge
+          : (dx >= 0 ? AppColors.leftRightEdge : AppColors.rightLeftEdge);
 
       final perpX = -uy;
       final perpY = ux;

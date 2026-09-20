@@ -9,6 +9,7 @@ class AppColors {
   static const Color rightLeftEdge = Color.fromARGB(255, 18, 219, 215);
   static const Color selfLoopEdge = Color.fromARGB(255, 102, 18, 219);
   static const Color previewEdge = Color.fromARGB(255, 24, 100, 217);
+  static const Color hungarianSolutionEdge = Color(0xFF1C9603);
   //nodes
   static const Color lightNodeLabel = Color.fromARGB(255, 255, 255, 255);
   static const Color darkNodeLabel = Color.fromARGB(255, 0, 0, 0);
