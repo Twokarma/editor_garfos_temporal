@@ -368,7 +368,8 @@ class Graph {
       id -= 1;
       int r = id % 26;
       stack.add(r);
-      id = ((id-r)/26) as int;
+      //id = ((id-r)/26) as int;
+      id = (id - r) ~/ 26;
     }
 
     String name = "";

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../algorithms/JohnsonAlgorithm.dart';
-import '../models/jhonson_result.dart';
+  import '../algorithms/JohnsonAlgorithm.dart';
+  import '../models/jhonson_result.dart';
 
 /// Pantalla para ejecutar Johnson y ver la matriz de distancias.
 ///

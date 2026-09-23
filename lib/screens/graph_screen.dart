@@ -11,10 +11,7 @@ import 'matrix_screen.dart';
 
 
 import 'JohnsonScreen .dart';
-
 import 'critical_path_screen.dart';
-
-import 'package:graph_maker_app_2/screens/JohnsonScreen .dart';
 
 class GraphScreen extends StatelessWidget {
   const GraphScreen({super.key});

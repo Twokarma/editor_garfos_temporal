@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../algorithms/critical_path.dart';
 import '../algorithms/JohnsonAlgorithm.dart';
 
+
 /// Pantalla de ruta crítica. Muestra, por nodo, [más temprano | más tardío]
 /// y, por arista, la holgura h = latest[destino] - earliest[origen] - peso.
 ///
