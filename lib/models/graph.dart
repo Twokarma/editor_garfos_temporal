@@ -6,6 +6,8 @@ import 'package:graph_maker_app_2/models/edge.dart';
 import 'package:graph_maker_app_2/models/matrix_data.dart';
 import 'package:graph_maker_app_2/models/node.dart';
 
+import 'package:graph_maker_app_2/algorithms/JohnsonAlgorithm.dart';
+
 class Graph {
   Map<String, Node> nodes = {};
   Map<String, Edge> edges = {};
@@ -397,4 +399,37 @@ class Graph {
   }
 
 
+  ///
+  ///  /// Nombres de los nodos, en el mismo orden que los índices de Johnson.
+  List<String> johnsonLabels() => nodes.values.map((n) => n.name).toList();
+
+  /// Aristas convertidas a índices. Las no dirigidas se agregan en ambos sentidos.
+  List<JohnsonEdge> johnsonEdges() {
+    final index = <String, int>{};
+    var i = 0;
+    for (final id in nodes.keys) {
+      index[id] = i++;
+    }
+
+    final result = <JohnsonEdge>[];
+    edges.forEach((_, e) {
+      final from = index[e.sourceNodeId]!;
+      final to = index[e.targetNodeId]!;
+      result.add(JohnsonEdge(from, to, e.weight));
+      if (!e.directed && from != to) {
+        result.add(JohnsonEdge(to, from, e.weight));
+      }
+    });
+    return result;
+  }
+  List<JohnsonEdge> cpmEdges() {
+    final index = <String, int>{};
+    var i = 0;
+    for (final id in nodes.keys) {
+      index[id] = i++;
+    }
+    return edges.values
+        .map((e) => JohnsonEdge(index[e.sourceNodeId]!, index[e.targetNodeId]!, e.weight))
+        .toList();
+  }
 }
