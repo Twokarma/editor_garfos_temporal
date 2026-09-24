@@ -229,86 +229,61 @@ class Graph {
         }).toList(),
       };
   }
-
  MatrixData buildMatrixData(){
-    List<Node> orderedNodes = nodes.values.toList();
-    int n = orderedNodes.length;
-    Map<String, int> index = {};
-    for(int i = 0; i < n; i++){
-      index[orderedNodes[i].id] = i;
-    }
+    final orderedNodes = nodes.values.toList();
 
-    final inverseIndex = <int, String>{
-      for(var entry in index.entries) entry.value : entry.key
-    };
-    List<String> emptyRows = [];
-    for(int i = 0; i < n; i++){
-      bool emptyRow = true;
-      for(int j = 0; j < n; j++){
-        if(edgeExists(inverseIndex[i]!, inverseIndex[j]!)){
-          emptyRow = false;
-        }
-      }
-      if(emptyRow) emptyRows.add(inverseIndex[i]!);
-    }
-
-    List<String> emptyCols = [];
-    for(int j = 0; j < n; j++){
-      bool emptyCol = true;
-      for(int i = 0; i < n; i++){
-        if(edgeExists(inverseIndex[i]!, inverseIndex[j]!)){
-          emptyCol = false;
-        }
-      }
-      if(emptyCol) emptyCols.add(inverseIndex[j]!);
-    }
-
-    List<Node> rowHeaders = orderedNodes.toList();
-    List<Node> colHeaders = orderedNodes.toList();
-    for(String row in emptyRows) {
-      for(Node node in rowHeaders) {
-        if(node.id == row) rowHeaders.remove(node);
-      }
-    }
-    for(String col in emptyCols) {
-      for(Node node in colHeaders) {
-        if(node.id == col) colHeaders.remove(node);
-      }
-    }
-
-    int rows = rowHeaders.length;
-    Map<String, int> rowIndex = {};
-    for(int i = 0; i < rows; i++){
-      rowIndex[rowHeaders[i].id] = i;
-    }
-    int cols = colHeaders.length;
-    Map<String, int> colIndex = {};
-    for(int i = 0; i < cols; i++){
-      colIndex[colHeaders[i].id] = i;
-    }
-
-    List<List<double>> matrix = List.generate(rows, (_) => List.filled(cols, 0.0));
-    List<int> rowDegree = List.filled(rows, 0);
-    List<int> colDegree = List.filled(cols, 0);
-
+    // Qué nodos tienen salidas / entradas. Las aristas no dirigidas
+    // cuentan en ambos sentidos.
+    final hasOut = <String>{};
+    final hasIn = <String>{};
     edges.forEach((id, edge){
-      int i = rowIndex[edge.sourceNodeId]!;
-      int j = colIndex[edge.targetNodeId]!;
-      matrix[i][j] = edge.weight;
-      rowDegree[i] += 1;
-      colDegree[j] += 1;
-      if(!edge.directed && i != j){
-        matrix[j][i] = edge.weight;
-        rowDegree[j] += 1;
-        colDegree[i] += 1;
+      hasOut.add(edge.sourceNodeId);
+      hasIn.add(edge.targetNodeId);
+      if(!edge.directed){
+        hasOut.add(edge.targetNodeId);
+        hasIn.add(edge.sourceNodeId);
       }
     });
 
-    List<double> rowSum = List.filled(rows, 0.0);
-    List<double> colSum = List.filled(cols, 0.0);
+    final rowHeaders = orderedNodes.where((n) => hasOut.contains(n.id)).toList();
+    final colHeaders = orderedNodes.where((n) => hasIn.contains(n.id)).toList();
 
+    final rows = rowHeaders.length;
+    final cols = colHeaders.length;
+    final rowIndex = <String, int>{
+      for(int i = 0; i < rows; i++) rowHeaders[i].id: i
+    };
+    final colIndex = <String, int>{
+      for(int j = 0; j < cols; j++) colHeaders[j].id: j
+    };
+
+    final matrix = List.generate(rows, (_) => List.filled(cols, 0.0));
+    final rowDegree = List.filled(rows, 0);
+    final colDegree = List.filled(cols, 0);
+
+    edges.forEach((id, edge){
+      final i = rowIndex[edge.sourceNodeId];
+      final j = colIndex[edge.targetNodeId];
+      if(i != null && j != null){
+        matrix[i][j] = edge.weight;
+        rowDegree[i] += 1;
+        colDegree[j] += 1;
+      }
+      if(!edge.directed && edge.sourceNodeId != edge.targetNodeId){
+        final i2 = rowIndex[edge.targetNodeId];
+        final j2 = colIndex[edge.sourceNodeId];
+        if(i2 != null && j2 != null){
+          matrix[i2][j2] = edge.weight;
+          rowDegree[i2] += 1;
+          colDegree[j2] += 1;
+        }
+      }
+    });
+
+    final rowSum = List.filled(rows, 0.0);
+    final colSum = List.filled(cols, 0.0);
     for(int i = 0; i < rows; i++){
-      for(int j = 0; j < cols; j++) {
+      for(int j = 0; j < cols; j++){
         rowSum[i] += matrix[i][j];
         colSum[j] += matrix[i][j];
       }

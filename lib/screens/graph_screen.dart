@@ -7,11 +7,7 @@ import '../providers/graph_provider.dart';
 import 'chat_screen.dart';
 import 'hungarian_screen.dart';
 import 'matrix_screen.dart';
-
-
-
 import 'JohnsonScreen .dart';
-import 'critical_path_screen.dart';
 
 class GraphScreen extends StatelessWidget {
   const GraphScreen({super.key});
@@ -208,8 +204,7 @@ class GraphScreen extends StatelessWidget {
               style: TextStyle(fontSize: 11),
             ),
           ),
-
-                    const SizedBox(height: 12),
+          const SizedBox(height: 12),
           FloatingActionButton(
             heroTag: "johnsonFab",
             onPressed: () {
@@ -219,6 +214,7 @@ class GraphScreen extends StatelessWidget {
                   builder: (_) => JohnsonScreen(
                     labels: graph.johnsonLabels(),
                     edges: graph.johnsonEdges(),
+                    cpmEdges: graph.cpmEdges(),
                   ),
                 ),
               );
@@ -230,24 +226,6 @@ class GraphScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18),
             ),
           ),
-                    const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: "cpmFab",
-            onPressed: () {
-              final graph = graphProvider.graphGetter();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => CriticalPathScreen(
-                    labels: graph.johnsonLabels(),
-                    edges: graph.cpmEdges(),
-                  ),
-                ),
-              );
-            },
-            shape: const CircleBorder(),
-            child: const Text("CPM", style: TextStyle(fontSize: 11)),
-          ),
-
         ],
       ),
     );

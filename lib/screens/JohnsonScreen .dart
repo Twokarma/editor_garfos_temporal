@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
-  import '../algorithms/JohnsonAlgorithm.dart';
-  import '../models/jhonson_result.dart';
+
+import '../algorithms/JohnsonAlgorithm.dart';
+import '../models/jhonson_result.dart';
+import 'critical_path_screen.dart';
 
 /// Pantalla para ejecutar Johnson y ver la matriz de distancias.
 ///
 /// Si no se pasan [labels] y [edges], usa un grafo de ejemplo para poder
-/// probarla de inmediato.
+/// probarla de inmediato. [cpmEdges] son las aristas (sin duplicar las no
+/// dirigidas) que se usan para la ruta crítica.
 class JohnsonScreen extends StatefulWidget {
   final List<String>? labels;
   final List<JohnsonEdge>? edges;
+  final List<JohnsonEdge>? cpmEdges;
 
-  const JohnsonScreen({super.key, this.labels, this.edges});
+  const JohnsonScreen({super.key, this.labels, this.edges, this.cpmEdges});
 
   @override
   State<JohnsonScreen> createState() => _JohnsonScreenState();
@@ -51,6 +55,17 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
     );
   }
 
+  void _openCriticalPath() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CriticalPathScreen(
+          labels: widget.labels,
+          edges: widget.cpmEdges ?? widget.edges,
+        ),
+      ),
+    );
+  }
+
   String _fmt(double v) {
     if (!v.isFinite) return '—';
     return v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
@@ -66,6 +81,12 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 _buildObjectiveSelector(),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openCriticalPath,
+                  icon: const Icon(Icons.route),
+                  label: const Text('Ruta crítica'),
+                ),
                 const SizedBox(height: 16),
                 if (_result.hasNegativeCycle)
                   _buildCycleWarning()

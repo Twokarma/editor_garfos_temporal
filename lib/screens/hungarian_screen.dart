@@ -23,7 +23,7 @@ class _HungarianScreenState extends State<HungarianScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _askGoal());
   }
 
-  Future<void> _askGoal() async {
+    Future<void> _askGoal() async {
     final min = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -51,12 +51,21 @@ class _HungarianScreenState extends State<HungarianScreen> {
       return;
     }
 
-    final solution = _graphCopy.hungarianSolutionEdgeIds(min: min).toSet();
-    setState(() => _solutionEdgeIds = solution);
+    try {
+      final solution = _graphCopy.hungarianSolutionEdgeIds(min: min).toSet();
+      if (!mounted) return;
+      setState(() => _solutionEdgeIds = solution);
 
-    if (solution.isEmpty) {
+      if (solution.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No assignment found in this graph")),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('Hungarian error: $e\n$st');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No assignment found in this graph")),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
