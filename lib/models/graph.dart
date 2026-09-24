@@ -229,61 +229,63 @@ class Graph {
         }).toList(),
       };
   }
+
  MatrixData buildMatrixData(){
-    final orderedNodes = nodes.values.toList();
+    List<Node> orderedNodes = nodes.values.toList();
 
-    // Qué nodos tienen salidas / entradas. Las aristas no dirigidas
-    // cuentan en ambos sentidos.
-    final hasOut = <String>{};
-    final hasIn = <String>{};
+    // Nodos que aparecen como origen (filas) o destino (columnas).
+    // Las aristas no dirigidas cuentan en ambos sentidos.
+    Map<String, Node> rowNodes = {};
+    Map<String, Node> colNodes = {};
     edges.forEach((id, edge){
-      hasOut.add(edge.sourceNodeId);
-      hasIn.add(edge.targetNodeId);
+      rowNodes[edge.sourceNodeId] = nodes[edge.sourceNodeId]!;
+      colNodes[edge.targetNodeId] = nodes[edge.targetNodeId]!;
       if(!edge.directed){
-        hasOut.add(edge.targetNodeId);
-        hasIn.add(edge.sourceNodeId);
+        rowNodes[edge.targetNodeId] = nodes[edge.targetNodeId]!;
+        colNodes[edge.sourceNodeId] = nodes[edge.sourceNodeId]!;
       }
     });
 
-    final rowHeaders = orderedNodes.where((n) => hasOut.contains(n.id)).toList();
-    final colHeaders = orderedNodes.where((n) => hasIn.contains(n.id)).toList();
+    // Se filtran desde orderedNodes para conservar el orden de creación (A, B, C...)
+    List<Node> rowHeaders = orderedNodes.where((n) => rowNodes.containsKey(n.id)).toList();
+    List<Node> colHeaders = orderedNodes.where((n) => colNodes.containsKey(n.id)).toList();
 
-    final rows = rowHeaders.length;
-    final cols = colHeaders.length;
-    final rowIndex = <String, int>{
-      for(int i = 0; i < rows; i++) rowHeaders[i].id: i
-    };
-    final colIndex = <String, int>{
-      for(int j = 0; j < cols; j++) colHeaders[j].id: j
-    };
+    int rows = rowHeaders.length;
+    Map<String, int> rowIndex = {};
+    for(int i = 0; i < rows; i++){
+      rowIndex[rowHeaders[i].id] = i;
+    }
+    int cols = colHeaders.length;
+    Map<String, int> colIndex = {};
+    for(int i = 0; i < cols; i++){
+      colIndex[colHeaders[i].id] = i;
+    }
 
-    final matrix = List.generate(rows, (_) => List.filled(cols, 0.0));
-    final rowDegree = List.filled(rows, 0);
-    final colDegree = List.filled(cols, 0);
+    List<List<double>> matrix = List.generate(rows, (_) => List.filled(cols, 0.0));
+    List<int> rowDegree = List.filled(rows, 0);
+    List<int> colDegree = List.filled(cols, 0);
 
     edges.forEach((id, edge){
-      final i = rowIndex[edge.sourceNodeId];
-      final j = colIndex[edge.targetNodeId];
-      if(i != null && j != null){
-        matrix[i][j] = edge.weight;
-        rowDegree[i] += 1;
-        colDegree[j] += 1;
-      }
+      int i = rowIndex[edge.sourceNodeId]!;
+      int j = colIndex[edge.targetNodeId]!;
+      matrix[i][j] = edge.weight;
+      rowDegree[i] += 1;
+      colDegree[j] += 1;
+      // Se comparan ids de nodos (no índices) para detectar el auto-lazo
       if(!edge.directed && edge.sourceNodeId != edge.targetNodeId){
-        final i2 = rowIndex[edge.targetNodeId];
-        final j2 = colIndex[edge.sourceNodeId];
-        if(i2 != null && j2 != null){
-          matrix[i2][j2] = edge.weight;
-          rowDegree[i2] += 1;
-          colDegree[j2] += 1;
-        }
+        final i2 = rowIndex[edge.targetNodeId]!;
+        final j2 = colIndex[edge.sourceNodeId]!;
+        matrix[i2][j2] = edge.weight;
+        rowDegree[i2] += 1;
+        colDegree[j2] += 1;
       }
     });
 
-    final rowSum = List.filled(rows, 0.0);
-    final colSum = List.filled(cols, 0.0);
+    List<double> rowSum = List.filled(rows, 0.0);
+    List<double> colSum = List.filled(cols, 0.0);
+
     for(int i = 0; i < rows; i++){
-      for(int j = 0; j < cols; j++){
+      for(int j = 0; j < cols; j++) {
         rowSum[i] += matrix[i][j];
         colSum[j] += matrix[i][j];
       }
